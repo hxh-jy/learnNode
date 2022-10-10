@@ -1,0 +1,1 @@
+console.log(__filename + '\n' + __dirname)
