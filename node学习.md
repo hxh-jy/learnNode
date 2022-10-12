@@ -729,3 +729,93 @@ app.use(test)					// 注册
 
 # 八、CORS中间件
 
+**作用：**主要用于解决客户端请求与服务端的跨域问题
+
+**原理：**由一系列http响应头组成，这个响应头可以决定浏览器是否阻止前端JS代码跨域获取资源，当接口服务器配置了CORS中间件后在发起请求就会自动配置相应的请求头，进而接触浏览器的跨域访问权限
+
+## 8.1 cors请求头介绍
+
+### **8.1.1 origin** 
+
++ 定义：指定允许访问该资源的外域URL
+
++ 语法： ‘Access-Control-Allow-Origin’,‘域名’
+
++ 用法： res.setHeader(‘Access-Control-Allow-Origin’,’*’),通配符，表示允许来自任何域的请求。*
+
+  ```js
+  // 只允许来自 http://127.0.0.1 的请求
+  res.setHeader('Access-Control-Allow-Origin','http://127.0.0.1')
+  // 允许任何域的请求
+  res.setHeader('Access-Control-Allow-Origin','*')
+  ```
+
+### 8.1.2 Headers
+
++ **定义**：声明cors支持之外的请求头
+
++ *默认情况下，cors仅支持客户端向服务器发送如下的9个请求头：
+  Accept、Accept-Language、Content-Language、DPR、Downlink、Save-Data、Viewport-Width、Width、Content-Type*（值仅限于 text/plain、multipart/form-data、application/x-www-form-urlencoded 三者之一)
+
++ *如果需要向服务器发送额外的请求头信息，则需要在服务器端，通过Access-Control-Allow-Headers，对额外的请求头进行声明*
+
++ **用法：** *res.setHeader(‘Access-Control-Allow-Header’,‘添加的请求头’)*
+
+  ```js
+  // 允许客户端额外向服务器发送Content-Type请求头和X-Custom-Header请求头
+  // 注意：多个请求头之间使用英文的逗号进行分割
+  res.setHeader('Access-Control-Allow-Headers','Content-Type,X-Custom-Header')
+  ```
+
+### 8.1.3 Methods
+
++ **定义：**添加请求方式
+
++ 默认情况下，cors仅仅支持客户端发起get、post、head三种请求
+
++ 如果客户端需要发起put、delete等请求服务器资源，需要通过*Access-Control-Allow-Methods来指明实际请求所允许使用的HTTP方法*
+
++ **用法：***res.setHeader(‘Access-control-Allow-Methods’,’*’) //通配符，选定所有请求方式，，或者写入’DELETE’,这种方式也可以
+
+  ```js
+  // 只允许POST、GET、DELETE、HEAD请求方法
+  res.setHeader('Access-Control-Allow-Methods','POST,GET,DELETE,HEAD')
+  // 允许所有的HTTP请求方法
+  res.setHeader('Access-Control-Allow-Methods','*')
+  ```
+
+## 8.2 请求分类
+
+### 8.2.1 简单请求
+
+同时满足条件：
+
++ （1）请求方式为GET、POST、HEAD之一 
++ （2）http头部信息不超过以下几种字段：无自定义头部、Accept、Accept-Language、Content-Language、DPR、Downlink、Save-Data、Viewport-Width、Width、Content-Type
+
+### 8.2.2 预检请求
+
+符合以下条件之一：
+
++ （1）请求方式为GET、POST、HEAD之外 
++ （2）请求头中包含自定义头部字段 
++ （3）向服务器发送了application/json格式的数据
+
+**意思：**就是说在浏览器和服务器正式通信之前，检测到了整个请求体中存在非cors默认的信息，此时要通过*options*进行预检，查明服务端是否允许了此种非默认的改变，如果预检成功，则表示服务端允许了，才会发送正真的请求，并携带回响应的数据
+
+**总结：**简单请求只会存在一次请求，而预检请求会在发送真正请求之前，通过options请求来确认服务器是否允许了此次请求信息中的非默认允许信息
+
+## 8.3 基本使用
+
++ 安装
+
+  ```js
+  npm i cors
+  ```
+
++ 使用
+
+  ```js
+  const cors = require('cors')
+  app.use(cors()) // 配置中间件，必须在路由之前
+  ```
