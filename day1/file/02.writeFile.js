@@ -1,12 +1,17 @@
-const fs = require('fs')
+var fs = require("fs");
 
-// options 默认值utf-8
-// fs.writeFile(path,data[,options],callback) 写入成功 err=null
-fs.writeFile('../resource/02.testWrite.txt','测试写文件',(err) => {
-    console.log(err == null)
-    if (err == null) {
-        return console.log('写入成功')
-    } else {
-        return console.log('写入失败' + err)
-    }
-})
+console.log("准备写入文件");
+fs.writeFile('input.txt', '我是通 过fs.writeFile 写入文件的内容',  function(err) {
+   if (err) {
+       return console.error(err);
+   }
+   console.log("数据写入成功！");
+   console.log("--------我是分割线-------------")
+   console.log("读取写入的数据！");
+   fs.readFile('input.txt', function (err, data) {
+      if (err) {
+         return console.error(err);
+      }
+      console.log("异步读取文件数据: " + data.toString());
+   });
+});
