@@ -10,11 +10,15 @@ Node.js 可以解析JS代码（没有浏览器安全级别的限制）提供很�
 
 ## 2.1 fs.readFile()
 
+**异步读取文件**
+
 + 引用
 
   `const fs = require('fs') `
 
 + *options 代表编码格式读取*  fs.readFile(path,[,options],callback)
+
++ *异步读取文件的方法，函数最后一个参数为回调函数，回调函数的第一个参数包含了错误信息(error)*
 
   ```js
   // 示例 读取成功 err=null 读取失败 data=undefined
@@ -26,7 +30,36 @@ Node.js 可以解析JS代码（没有浏览器安全级别的限制）提供很�
   })
   ```
 
+**同步读取文件**
+
++ fs.readFileSync(path)
+
++ 文件的返回值是一个Buffer,需要通过toString方法转换一下,或者通过设置utf-8读取形式
+
++ <Buffer e6 b5 8b e8 af 95 e8 af bb e6 96 87 e4 bb b6>
+
+  ```js
+  let data = fs.readFileSync('../../resource/01.txt','utf-8')
+  console.log('测试同步读取文件',data)
+  ```
+
+**建议：**建议使用异步方法，比起同步，异步方法性能更高，速度更快，而且没有阻塞。
+
 ## 2.2 fs.writeFile()
+
+`fs.writeFile(file, data[, options], callback)`
+
+参数使用说明如下：
+
+- **file** - 文件名或文件描述符。
+
+- **data** - 要写入文件的数据，可以是 String(字符串) 或 Buffer(缓冲) 对象。
+
+- **options** - 该参数是一个对象，包含 {encoding, mode, flag}。默认编码为 utf8, 模式为 0666 ， flag 为 'w'
+
+  writeFile 直接打开文件默认是 **w** 模式，所以如果文件存在，该方法写入的内容会覆盖旧的文件内容。
+
+- **callback** - 回调函数，回调函数只包含错误信息参数(err)，在写入失败时返回。
 
 ```js
 // options 默认值utf-8
@@ -108,6 +141,265 @@ fs.writeFile('../resource/02.testWrite.txt','测试写文件',(err) => {
 ### 2.3.3 __filename模块
 
 当前模块的文件名称---解析后的绝对路径。
+
+## 2.4 打开文件
+
+异步模式下打开文件的语法格
+
+`fs.open(path, flags[, mode], callback)`
+
+**参数说明：**
+
++ path  文件路径
++ flags 文件打开的行为
+  - r----读取模式打开，不存在抛出异常
+  - r+ ---- 读写模式 不存在抛出异常
+  - rs---同步读取
+  - rs+ --- 同步读写
+  - w ---写入模式打开，不存在则创建
+  - wx--- 写模式，但是如果文件存在会报错
+  - w+ --读写，不存在创建
+  - wx+  读写，文件存在会报错
+  - a  ---追加模式打开，不存在则创建
+  - ax ---文件存在则报错
+  - a+ ---读追加打开，不存在则创建
+  - ax+  -- -读追加打开，文件存在追加失败
+
+## 2.5 获取文件信息
+
+异步模式获取文件信息的语法格式：
+
+`fs.stat(path, callback)`
+
+参数使用说明如下：
+
+- **path** - 文件路径。
+- **callback** - 回调函数，带有两个参数如：(err, stats), **stats** 是 fs.Stats 对象。
+
+```js
+var fs = require("fs");
+
+console.log("准备打开文件！");
+fs.stat('input.txt', function (err, stats) {
+   if (err) {
+       return console.error(err);
+   }
+   console.log(stats);
+   console.log("读取文件信息成功！");
+   
+   // 检测文件类型
+   console.log("是否为文件(isFile) ? " + stats.isFile());
+   console.log("是否为目录(isDirectory) ? " + stats.isDirectory());    
+});
+```
+
++ stats.isFile() 是否为文件
++ stats.isDirectory()  是否为目录
+
+## 2.6 读取文件
+
+异步模式下读取文件的语法格式：
+
+`fs.read(fd, buffer, offset, length, position, callback)`
+
+参数使用说明如下：
+
+- **fd** - 通过 fs.open() 方法返回的文件描述符。
+
+- **buffer** - 数据写入的缓冲区。
+
+- **offset** - 缓冲区写入的写入偏移量。
+
+- **length** - 要从文件中读取的字节数。
+
+- **position** - 文件读取的起始位置，如果 position 的值为 null，则会从当前文件指针的位置读取。
+
+- **callback** - 回调函数，有三个参数err, bytesRead, buffer，err 为错误信息， bytesRead 表示读取的字节数，buffer 为缓冲区对象
+
+  ```js
+  var fs = require('fs')
+  // 创建一个Buffer缓冲区用于存放数据
+  var buf = new Buffer.alloc(1024);
+  
+  fs.open('input.txt','r+',(err,fd) => {
+      if (err) {
+          return console.log(err)
+      }
+      console.log('文件打卡成功\n准备读取文件')
+      fs.read(fd,buf,0,buf.length,0,(err,bytes) => {
+          if (err) {
+              console.log('err',err)
+          }
+          console.log('字节被读取',bytes,fd)
+          if (bytes > 0) {
+              console.log(buf.slice(0,bytes).toString())
+          }
+      })
+  })
+  ```
+
+## 2.7 关闭文件
+
+`fs.close(fd, callback)`
+
+```js
+var fs = require("fs");
+var buf = new Buffer.alloc(1024);
+
+console.log("准备打开文件！");
+fs.open('input.txt', 'r+', function(err, fd) {
+   if (err) {
+       return console.error(err);
+   }
+   console.log("文件打开成功！");
+   console.log("准备读取文件！");
+   fs.read(fd, buf, 0, buf.length, 0, function(err, bytes){
+      if (err){
+         console.log(err);
+      }
+
+      // 仅输出读取的字节
+      if(bytes > 0){
+         console.log(buf.slice(0, bytes).toString());
+      }
+
+      // 关闭文件
+      fs.close(fd, function(err){
+         if (err){
+            console.log(err);
+         } 
+         console.log("文件关闭成功");
+      });
+   });
+});
+```
+
+## 2.8 截取文件
+
+`fs.ftruncate(fd, len, callback)`
+
+参数使用说明如下：
+
+- **fd** - 通过 fs.open() 方法返回的文件描述符。
+
+- **len** - 文件内容截取的长度。
+
+- **callback** - 回调函数，没有参数。
+
+  ```js
+  var fs = require("fs");
+  var buf = new Buffer.alloc(1024);
+  
+  console.log("准备打开文件！");
+  fs.open('input.txt', 'r+', function(err, fd) {
+     if (err) {
+         return console.error(err);
+     }
+     console.log("文件打开成功！");
+     console.log("截取10字节内的文件内容，超出部分将被去除。");
+     
+     // 截取文件
+     fs.ftruncate(fd, 10, function(err){
+        if (err){
+           console.log(err);
+        } 
+        console.log("文件截取成功。");
+        console.log("读取相同的文件"); 
+        fs.read(fd, buf, 0, buf.length, 0, function(err, bytes){
+           if (err){
+              console.log(err);
+           }
+  
+           // 仅输出读取的字节
+           if(bytes > 0){
+              console.log(buf.slice(0, bytes).toString());
+           }
+  
+           // 关闭文件
+           fs.close(fd, function(err){
+              if (err){
+                 console.log(err);
+              } 
+              console.log("文件关闭成功！");
+           });
+        });
+     });
+  });
+  ```
+
+## 2.9 删除文件
+
+`fs.unlink(path, callback)`
+
+```js
+var fs = require("fs");
+
+console.log("准备删除文件！");
+fs.unlink('input.txt', function(err) {
+   if (err) {
+       return console.error(err);
+   }
+   console.log("文件删除成功！");
+});
+```
+
+## 2.10 目录的相关操作
+
+```js
+var fs = require("fs");
+
+// console.log("准备删除文件！");
+// fs.unlink('input.txt', function(err) {
+//    if (err) {
+//        return console.error(err);
+//    }
+//    console.log("文件删除成功！");
+// });
+
+// 创建目录
+// fs.mkdir(__dirname + '/test',(err) => {
+//     if (err) {
+//         return console.log('创建目录失败',err)
+//     }
+//     console.log('目录创建成功')
+//     fs.writeFile(__dirname + '/test'+ '/temp.txt','创建文件',(err,data) => {
+//         err ? console.log(err) : console.log('文件创建成功',data)
+//     })
+// })
+
+// 读取目录
+/**
+ * 参数使用说明如下：
+ * path - 文件路径。
+ * callback - 回调函数回调函数带有两个参数err, files，err 为错误信息
+ * files 为 目录下的文件数组列表。
+ */
+// fs.readdir(__dirname + '/test',(err,files) => {
+//     if (err) {
+//         return console.log('读取目录失败',err)
+//     }
+//     console.log('读取目录',files)
+//     files.forEach(file => {
+//         console.log('file',file)
+//     })
+// })
+
+// 删除目录
+fs.rmdir(__dirname + '/test/temp',err => {
+    if (err) {
+        return console.log('删除目录失败',err)
+    }
+    fs.readdir(__dirname + '/test',(err,files) => {
+        if (err) {
+            return console.log('读取目录失败',err)
+        }
+        console.log('读取目录',files)
+        files.forEach(file => {
+            console.log('file',file)
+        })
+    })
+})
+```
 
 # 三、http模块
 
@@ -819,3 +1111,395 @@ app.use(test)					// 注册
   const cors = require('cors')
   app.use(cors()) // 配置中间件，必须在路由之前
   ```
+
+# 九、前后端身份认证
+
+网址： https://blog.csdn.net/DDDHL_/article/details/124390573
+
+# 十、Buffer
+
+**js语言本身只有字符串形式，没有二进制形式类型**
+
++ 在处理TCP流或文件时必须使用到二进制数据，因为在node中专门定义了buffer类，该类用来创建一个专门存放二进制数据的缓存区
++ 一个 Buffer 类似于一个整数数组
++ *在v6.0之前创建Buffer对象直接使用new Buffer()构造函数来创建对象实例，但是Buffer对内存的权限操作相比很大，可以直接捕获一些敏感信息，所以在v6.0以后，官方文档里面建议使用* **Buffer.from()** *接口去创建Buffer对象。*
+
+## 10.1 创建Buffer类
+
+- **Buffer.alloc(size[, fill[, encoding]])：** 返回一个指定大小的 Buffer 实例，如果没有设置 fill，则默认填满 0
+- **Buffer.allocUnsafe(size)：** 返回一个指定大小的 Buffer 实例，但是它不会被初始化，所以它可能包含敏感的数据
+- **Buffer.allocUnsafeSlow(size)**
+- **Buffer.from(array)：** 返回一个被 array 的值初始化的新的 Buffer 实例（传入的 array 的元素只能是数字，不然就会自动被 0 覆盖）
+- **Buffer.from(arrayBuffer[, byteOffset[, length]])：** 返回一个新建的与给定的 ArrayBuffer 共享同一内存的 Buffer。
+- **Buffer.from(buffer)：** 复制传入的 Buffer 实例的数据，并返回一个新的 Buffer 实例
+- **Buffer.from(string[, encoding])：** 返回一个被 string 的值初始化的新的 Buffer 实例
+
+```js
+let buf1 = Buffer.alloc(10,'abc')
+console.log('buffer实例为：',buf1.toString())
+
+let buf2 = Buffer.from([1,1,1,143,23,34])
+console.log('buffer实例为：',buf2.toString())
+```
+
+## 10.2 写入缓冲区
+
+`buf.write(string[, offset[, length]][, encoding])`
+
+参数描述如下：
+
+- **string** - 写入缓冲区的字符串。
+- **offset** - 缓冲区开始写入的索引值，默认为 0 。
+- **length** - 写入的字节数，默认为 buffer.length
+- **encoding** - 使用的编码。默认为 'utf8' 。
+
+**返回值:**返回**实际写入的大小**。如果 buffer 空间不足， 则只会写入部分字符串。
+
+```js
+let buf3 = Buffer.alloc(256)
+let len = buf3.write('www.baicu.com')
+console.log('实际写入的字节数为:',len)
+// 3
+```
+
+## 10.3 从缓冲区读取数据
+
+`buf.toString([encoding[, start[, end]]])`
+
+参数描述如下：
+
+- **encoding** - 使用的编码。默认为 'utf8' 。
+- **start** - 指定开始读取的索引位置，默认为 0。
+- **end** - 结束位置，默认为缓冲区的末尾。
+
+*返回值：解码缓冲区数据并使用指定的编码返回字符串。*
+
+```js
+let buf = buf3.toString('ascii',4)
+console.log('从缓冲区读取到的数据为：',buf)
+```
+
+## 10.4 将buffer转换为JSON对象
+
+`buf.toJSON()`
+
+当字符串化一个 Buffer 实例时，[JSON.stringify()](https://www.runoob.com/js/javascript-json-stringify.html) 会隐式地调用该 **toJSON()**。
+
+**返回值:**`*｛type: 'Buffer',data: [...]｝*`
+
+```js
+let bufJson = buf3.toJSON()
+console.log('将buffer实例转换为json对象为:',bufJson)
+```
+
+## 10.5 缓冲区合并
+
+`Buffer.concat(list[, totalLength])`
+
+参数描述如下：
+
+- **list** - 用于合并的 Buffer 对象数组列表。
+- **totalLength** - 指定合并后Buffer对象的总长度。
+
+**返回值：** 返回一个多个成员合并的新 Buffer 对象。
+
+```js
+let buf1 = Buffer.from('www.baidu.com ')
+let buf2 = Buffer.from('www.taobao.com')
+let buf3 = Buffer.concat([buf1,buf2])
+console.log('合并后的Buffer为：',buf3.toString())
+```
+
+## 10.6 缓冲区比较
+
+`buf.compare(otherBuffer);`
+
+参数描述如下：
+
+- **otherBuffer** - 与 **buf** 对象比较的另外一个 Buffer 对象。
+
+**返回：**返回一个数字，表示 **buf** 在 **otherBuffer** 之前，之后或相同。
+
+```js
+var buffer1 = Buffer.from('ABC');
+var buffer2 = Buffer.from('ABCD');
+var result = buffer1.compare(buffer2);
+
+if(result < 0) {
+   console.log(buffer1 + " 在 " + buffer2 + "之前");
+}else if(result == 0){
+   console.log(buffer1 + " 与 " + buffer2 + "相同");
+}else {
+   console.log(buffer1 + " 在 " + buffer2 + "之后");
+}
+```
+
+## 10.7 拷贝缓冲区
+
+`buf.copy(targetBuffer[, targetStart[, sourceStart[, sourceEnd]]])`
+
+参数描述如下：
+
+- **targetBuffer** - 要拷贝的 Buffer 对象。
+- **targetStart** - 数字, 可选, 默认: 0
+- **sourceStart** - 数字, 可选, 默认: 0
+- **sourceEnd** - 数字, 可选, 默认: buffer.length
+
+```js
+var buf1 = Buffer.from('abcdefghijkl');
+var buf2 = Buffer.from('RUNOOB');
+//将 buf2 插入到 buf1 指定位置上
+buf2.copy(buf1, 2);
+console.log(buf1.toString());
+```
+
+# 十一、全局对象
+
+## 11.1 process
+
+ process是一个全局变量，即 global 对象的属性。
+
+**process全局变量的属性**
+
+* process.execPath 可以返回当前Node应用程序执行的路径
+* process.version 返回当前Node版本信息
+
+* process.platform 返回当前Node服务平台信息
+* process.pid  当前进程的进程号
+* **process.stdout** 标准输出流
+* process.stdin 标准输入流
+* process.argv 属性返回一个数组，由命令行执行脚本时的各个参数组成。它的第一个成员总是node，第二个成员是脚本文件名，其余成员是脚本文件的参数。
+
+**process全局变量的方法**
+
++ **process.exit** 当进程准备退出时触发。
+
+```js
+process.on('exit',(code) => {
+    setTimeout(() => {
+        console.log('测试该代码会不会执行')
+    })
+
+    console.log('退出码为',code)
+})
+console.log('程序执行结束')
+```
+
++ **memoryUsage()**
+  返回一个对象，描述了 Node 进程所用的内存状况，单位为字节。
+
++ **uptime()**  返回 Node 已经运行的秒数
+
++ **nextTick(callback)**  一旦当前事件循环结束，调用回调函数。
+
+  使用场景：如果需要创建一个新的函数，该函数有一个回调函数作为其参数，期望该回调函数真正的被异步执行
+
++ **cwd()** 返回当前进程的工作目录
+
+## 11.2 global
+
+global 最根本的作用是作为全局变量的宿主。按照 ECMAScript 的定义，满足以下条 件的变量是全局变量：
+
+- 在最外层定义的变量；
+- 全局对象的属性；
+- 隐式定义的变量（未定义直接赋值的变量）。
+- Node.js 中的全局对象是 global，所有全局变量（除了 global 本身以外）都是 global 对象的属性。
+
+## 11.3 buffer
+
+buffer也属于全局对象，关于其介绍看第十章
+
+# 十二、定时器
+
+Node.js定时器模块提供了全局API，用于在以后的某个时间段调用函数。
+
+所有的定时器函数都是全局的。不需要通过`require()`就可以访问。
+
++ ## setTimeout(callback, delay[, arg][, ...])
+
+  需要注意，你的回调函数可能不会非常准确的在`delay`毫秒后执行，Node.js不保证回调函数的精确时间和执行顺序。回调函数会尽量的靠近指定的时间。
+
++ ## clearTimeout(timeoutObject)
+
+  阻止一个timeout被触发。
+
+  ## setInterval(callback, delay[, arg][, ...])
+
+  每隔`delay`毫秒就重复执行`callback`。返回`timeoutObject`对象，可能会用来`clearTimeout()`。你也可以给回调函数传参数。
+
+  ## clearInterval(intervalObject)
+
+  阻止一个interval被触发。
+
+  ## setImmediate(callback[, arg][, ...])
+
+  在`setTimeout`和`setInterval`事件前，在输入/输出事件后，安排一个`callback`"immediate"立即执行。
+
+  immediates的回调以它们创建的顺序加入队列。整个回调队列会在事件循环迭代中执行。如果你将immediates加入到一个正在执行回调中，那么将不会触发immediate，直到下次事件循环迭代。
+
+  ## clearImmediate(immediateObject)
+
+  用于停止一个immediate的触发。
+
+# 十三、[EventEmitter](https://www.w3cschool.cn/nodejs/aue11itf.html#events_class_events_eventemitter)的实例
+
++ events 模块只提供了一个对象： events.EventEmitter。EventEmitter 的核心就是事件触发与事件监听器功能的封装。
+
++ 你可以通过require("events");来访问该模块。
+
++ EventEmitter 对象如果在实例化时发生错误，会触发 error 事件。当添加新的监听器时，newListener 事件会触发，当监听器被移除时，removeListener 事件被触发。
+
++ EventEmitter 的每个事件由一个事件名和若干个参数组成，事件名是一个字符串，通常表达一定的语义。对于每个事件，EventEmitter 支持 若干个事件监听器。
+
+  当事件触发时，注册到这个事件的事件监听器被依次调用，事件参数作为回调函数参数传递。
+
+  ```js
+  let events = require('events')
+  let emitter = new events.EventEmitter()
+  emitter.on('event1',(arg1,arg2) => {
+      console.log('监听器1',arg1,arg2)
+  })
+  emitter.on('event1',(arg1,arg2) => {
+      console.log('监听器1',arg1,arg2)
+  })
+  emitter.emit('event1','arg1参数','arg2参数')
+  ```
+
+  **on** 函数用于绑定事件函数，**emit** 属性用于触发一个事件。
+
+## 13.1 方法
+
++ **addListener(event, listener)**
+  为指定事件添加一个监听器到监听器数组的尾部。
+
++ **on(event, listener)**
+  为指定事件注册一个监听器，接受一个字符串 event 和一个回调函数。
+
+  ```js
+  server.on('connection', function (stream) {
+    console.log('someone connected!');
+  });
+  ```
+
++ **once(event, listener)** 为指定事件注册一个单次监听器，即 监听器最多只会触发一次，触发后立刻解除该监听器。
+
+  ```js
+  server.once('connection', function (stream) {
+    console.log('Ah, we have our first user!');
+  });
+  ```
+
++ **removeListener(event, listener)**
+
+  移除指定事件的某个监听器，监听器必须是该事件已经注册过的监听器。
+
+  它接受两个参数，第一个是事件名称，第二个是回调函数名称。
+
+  ```js
+  var callback = function(stream) {
+    console.log('someone connected!');
+  };
+  server.on('connection', callback);
+  // ...
+  server.removeListener('connection', callback);
+  ```
+
++ **removeAllListeners([event])**
+  移除所有事件的所有监听器， 如果指定事件，则移除指定事件的所有监听器。
+
++ **setMaxListeners(n)**
+  默认情况下， EventEmitters 如果你添加的监听器超过 10 个就会输出警告信息。 setMaxListeners 函数用于改变监听器的默认限制的数量。
+
++ **emit(event, [arg1], [arg2], [...])**
+  按监听器的顺序执行执行每个监听器，如果事件有注册监听返回 true，否则返回 false。
+
++ 返回指定事件的监听器数量。
+
+  `events.emitter.listenerCount(eventName) //推荐`
+
+## 13.2 继承EventEmitter
+
+大多数时候我们不会直接使用 EventEmitter，而是在对象中继承它。包括 fs、net、 http 在内的，只要是支持事件响应的核心模块都是 EventEmitter 的子类。
+
+为什么要这样做呢？原因有两点：
+
+首先，具有某个实体功能的对象实现事件符合语义， 事件的监听和发生应该是一个对象的方法。
+
+其次 JavaScript 的对象机制是基于原型的，支持 部分多重继承，继承 EventEmitter 不会打乱对象原有的继承关系。
+
+# 十四、流
+
+# 十五、网络编程
+
+# 十六、web应用
+
+# nodeJs基础面试题
+
+## (1) 你对node的了解
+
+Node. js是一个基于 Chrome v8引擎的服务器端 JavaScript运行环境；Node. js是一个事件驱动、非阻塞式I/O的模型，轻量而又高效；Node. js的包管理器npm是全球最大的开源库生态系统。
+
+**注意：事件驱动、非阻塞I/O的概念需要清楚理解**
+
+## (2) process有哪些常用方法
+
+## (3) node.js中事件循环是什么样的
+
+事件循环其实就是一个事件队列，先加入先执行，执行完一次队列，再次循环遍历看有没有新事件加入队列。
+
+执行中的事件叫IO事件， setlmmediate在当前队列中立即执行，setTimout/setInterval把执行定时到下一个队列， process. nextTick在当前队列执行完，下次遍历前执行。所以总体顺序是：IO事件→ setImmediate→ setTimeout/setInterval→ process. nextTick。
+
+## (4) node中定时功能的函数
+
+setTimeout/clearTimeout, setInterval/clearInterval、 setImmediate/clearImmediate、 process. nextTick
+
+## (5) **Node. js中的 Buffer？**
+
+buffer是用来处理二进制数据的，例如（图片、文件、MP3等），支持各种编码解码、二进制字符串互转
+
+## (6) node中的异步和同步
+
+Node.js是单线程的，异步是通过一次次的循环事件队列来实现的。同步则是阻塞式的IO，这在高并发环境中会是一个很大的性能问题，所以同步一般只在基础框架启动时使用，用来加载配置文件、初始化程序等。
+
+## (7) 单线程与多线程
+
+### 7.1 进程
+
+一个程序开始运行时它就属于一个进程，进程包括运行中的程序和程序所使用到内存和系统资源，一个进程由多个线程组成
+
+### 7.2 线程
+
+线程是程序中的一个执行流，每个线程都有自己的专有寄存器，但代码区是共享的
+
+### 7.3 多线程
+
+[多线程](https://so.csdn.net/so/search?q=多线程&spm=1001.2101.3001.7020)是指程序中包含多个执行流，即在一个程序中可以同时运行多个不同的线程来执行不同的任务，也就是说允许单个程序创建多个并行执行的线程来完成各自的任务。
+
+**好处：**可以提高CPU的利用率。在多线程程序中，一个线程必须等待的时候，CPU可以运行其它的线程而不是等待，这样就大大提高了程序的效率。
+
+**缺点：**线程也是程序，所以线程需要占用内存，线程越多占用内存也越多;多线程需要协调和管理，所以需要CPU时间跟踪线程;线程之间对共享资源的访问会相互影响，必须解决竞用共享资源的问题;
+
+## (8) npm的作用、好处
+
+npm是 Node. js中管理和分发包的工具，可用于安装、卸载、发布、查看包等。
+
+**好处：** 以安装和管理项目的依赖，还可以指明依赖项的具体版本号。
+
+**作用：**
+
+（1）允许用户从npm服务器下载别人编写的第三方包到本地。
+
+（2）允许用户从npm服务器下载并安装别人编写的命令行程序到本地。
+
+（3）允许用户将自己编写的包或命令行程序上传到npm服务器供别人使用。
+
+## (9) node 还需要了解的
+
++ **精通 Express/Koa/Nest.js 框架或其他语言流行框架**
++ 熟练使用 MongoDB/Redis/MySQL 数据库；
++ **流、express框架、EventEmitter**
+
+## (10) node有哪些全局对象
+
+global、 process, console、 module和 exports。
+
