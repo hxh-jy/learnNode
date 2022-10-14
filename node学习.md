@@ -1490,9 +1490,111 @@ writeStream.on('error',(err) => {
 console.log('程序执行完成')
 ```
 
+## 14.3 管道流
+
+**从一个流中读取数据并将数据传递到另外一个流中**
+
+相当于把一个文件拷贝到另一个文件中
+
+```js
+let fs = require('fs')
+
+// 创建可读流
+let readStream = fs.createReadStream('../resource/test.txt')
+// 创建一个可写流
+let writeStream = fs.createWriteStream('../resource/pipe.txt')
+
+// 管道流写操作
+readStream.pipe(writeStream)
+
+console.log('程序执行完毕')
+```
+
+## 14.4 链式流
+
+链式是通过连接输出流到另外一个流并创建多个流操作链的机制。链式流一般用于管道操作。
+
+接下来我们就是用管道和链式来压缩和解压文件。
+
+```js
+let fs = require('fs')
+let zlib = require('zlib')
+// 创建可读流
+let readStream = fs.createReadStream('../resource/test.txt')
+// 创建一个可写流
+let writeStream = fs.createWriteStream('../resource/zlib.txt.gz')
+
+// 压缩 test.txt 文件为 zlib.txt.gz
+readStream.pipe(zlib.createGzip())
+          .pipe(writeStream)
+
+console.log('程序执行完毕')
+```
+
+**解压缩文件**
+
+```js
+// 解压缩程序
+fs.createReadStream('../resource/zlib.txt.gz')
+  .pipe(zlib.createGunzip())
+  .pipe(fs.createWriteStream('../resource/zlib.txt'))
+console.log('程序执行完毕')
+```
+
 # 十五、网络编程
 
-# 十六、web应用
+## 15.1 TCP服务
+
++ 定义： 网络传输协议，在osi模型上由七层组成（物理层、链路层、网络层--IP、传输层--TCP/UDP、会话层、表示层、应用层--http）
++ 面向连接的协议，特点是在传输之前需要三次握手形成会话
++ 会话形成后，服务端和客户端之间才能互相发送数据，在创建会话的过程中服务端和客户端会分别提供一个套接字，通过套接字实现两者之间的连接操作
+
+```js
+let net = require('net')
+
+let server = net.createServer()
+server.on('connection',(socket) => {
+    socket.on('data', function (data) { 
+        socket.write('hello'); 
+    })
+    socket.on('end', function () { 
+        console.log('接开'); 
+    }); 
+    socket.write("欢迎\n");
+})
+
+let app = server.listen(8080,'localhost',() => {
+    let host = app.address().address
+    let port = app.address().port
+    console.log('server运行地址为: ',`http://${host}:${port}`)
+})
+```
+
+## 15.2 TCP服务的事件
+
+### 15.2.1 服务器事件
+
+通过net.createServer()创建的服务器而言，是一个EventEmitter实例，自定义事件如下
+
++ listening
++ connection： 每个客户端套接字连接到服务器时触发
++ close： 服务器关闭时触发
++ error  服务器异常触发
+
+### 15.2.2 连接事件
+
+服务器可以同时和多个客户端保持连接，对于每个连接而言属于典型的可读可写Stream对象。Stream对象可以用于客户端和服务端之间的通信，可以通过data事件从一端读取另一端发来的数据，也可以通过write事件从一端向另一端发送数据
+
+**自定义事件**
+
++ data 一端用write发送数据时另一端会触发data事件
++ end 当连接端中的任意一端发送了FIN数据时触发
++ drain 当连接端中的任意一端用write发送时触发
++ timeout  一段时间活跃时触发
+
+**由于TCP是可读写的Stream对象，可以通过pipe管道流方法巧妙实现管道操作**
+
+
 
 # nodeJs基础面试题
 
