@@ -1429,6 +1429,67 @@ Node.js定时器模块提供了全局API，用于在以后的某个时间段调�
 
 # 十四、流
 
+Stream 有四种流类型：
+
+- **Readable** - 可读操作。
+- **Writable** - 可写操作。
+- **Duplex** - 可读可写操作.
+- **Transform** - 操作被写入数据，然后读出结果。
+
+所有的 Stream 对象都是 EventEmitter 的实例。常用的事件有：
+
+- **data** - 当有数据可读时触发。
+- **end** - 没有更多的数据可读时触发。
+- **error** - 在接收和写入过程中发生错误时触发。
+- **finish** - 所有数据已被写入到底层系统时触发
+
+## 14.1 从流中读取数据
+
+```js
+let fs = require('fs')
+
+let data = ''
+
+// 创建可读流
+let readStream = fs.createReadStream('../resource/test.txt')
+readStream.setEncoding('utf-8')
+// 处理流事件 data\end\error
+readStream.on('data',(chunk) => {
+    console.log('chunk',chunk)
+    data += chunk
+})
+
+readStream.on('end',() => {
+    console.log('data: ',data)
+})
+
+readStream.on('error',err => {
+    console.log('读取错误',err,err.stack)
+})
+
+console.log('程序执行完毕')
+```
+
+## 14.2 写入流
+
+```js
+let fs = require('fs')
+
+let writeStream = fs.createWriteStream('../resource/output.txt')
+let data = '创建写入流'
+
+// 使用 utf8 编码写入数据
+writeStream.write(data,'utf-8')
+
+writeStream.on('finish',() => {
+    console.log('写入完成')
+})
+writeStream.on('error',(err) => {
+    console.log('写入错误',err)
+})
+console.log('程序执行完成')
+```
+
 # 十五、网络编程
 
 # 十六、web应用
